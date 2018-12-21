@@ -71,7 +71,7 @@ class KNearestNeighbor(object):
         # training point, and store the result in dists[i, j]. You should   #
         # not use a loop over dimension.                                    #
         #####################################################################
-        pass
+        dists[i,j] = np.sqrt(np.sum((X[i,:] - self.X_train[j,:])**2))
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -93,7 +93,7 @@ class KNearestNeighbor(object):
       # Compute the l2 distance between the ith test point and all training #
       # points, and store the result in dists[i, :].                        #
       #######################################################################
-      pass
+      dists[i,:] = np.sqrt(np.sum((self.X_train[:,:] - X[i,:])**2, axis = 1))
       #######################################################################
       #                         END OF YOUR CODE                            #
       #######################################################################
@@ -121,7 +121,26 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    pass
+    
+    # this is based on https://medium.com/dataholiks-distillery/l2-distance-matrix-vectorization-trick-26aa3247ac6c. 
+    # which appears to be not only useful, but written for the stanford students, by the person who made this question. 
+
+    # sum along the image, so we get a sum for all the pixels in the image squared. 
+    # that's what the axis = 1 does. 
+    xSum = np.sum(X**2, axis = 1) # will have 500 elements
+    trainSum = np.sum(self.X_train**2, axis = 1) # will have 5000 elements
+    
+    # we want a 500x5000 element matrix. 
+    # collapse the array of test items (x) into an array of one dimensional arrays with the
+    # single element being the element to add via broadcasting. 
+    # this will be a 500 x 5000 matrix, with each row representing a test point, and
+    # each column representing its distance to a training point. 
+    totalSum = xSum[:,np.newaxis] + trainSum
+
+    # subtract from each entry, the dot product of the images from test/training. 
+    dists = np.sqrt(totalSum - 2 * np.dot(X, self.X_train.T))
+    #dists = -2 * np.dot(X, self.X_train.T) + np.sum(self.X_train**2, axis=1) + np.sum(X**2, axis=1)[:, np.newaxis]
+    
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
@@ -153,7 +172,8 @@ class KNearestNeighbor(object):
       # neighbors. Store these labels in closest_y.                           #
       # Hint: Look up the function numpy.argsort.                             #
       #########################################################################
-      pass
+      indices = np.argsort(dists[i])[:k]
+      closest_y = self.y_train[indices]
       #########################################################################
       # TODO:                                                                 #
       # Now that you have found the labels of the k nearest neighbors, you    #
@@ -161,7 +181,7 @@ class KNearestNeighbor(object):
       # Store this label in y_pred[i]. Break ties by choosing the smaller     #
       # label.                                                                #
       #########################################################################
-      pass
+      y_pred[i] = np.bincount(np.sort(closest_y)).argmax()
       #########################################################################
       #                           END OF YOUR CODE                            # 
       #########################################################################
